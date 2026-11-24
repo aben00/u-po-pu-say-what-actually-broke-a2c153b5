@@ -3,6 +3,7 @@
 // Writes the entry deterministically to /output/entry.txt and self-checks
 // the gate (exactly one line, 1-200 characters, not only whitespace),
 // then reads the file back and verifies it byte-for-byte.
+import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const ENTRY =
@@ -28,7 +29,15 @@ function main(): void {
   if (back !== ENTRY) {
     throw new Error("read-back mismatch: entry.txt differs from ENTRY");
   }
+  // Determinism proof: the file's sha256 must equal the entry's sha256,
+  // so a second run can be compared by hash alone.
+  const fileHash = createHash("sha256").update(back, "utf8").digest("hex");
+  const entryHash = createHash("sha256").update(ENTRY, "utf8").digest("hex");
+  if (fileHash !== entryHash) {
+    throw new Error("hash mismatch: entry.txt does not hash to the entry");
+  }
   console.log(`wrote /output/entry.txt (${ENTRY.length} chars)`);
+  console.log(`sha256 ${fileHash}`);
   console.log(ENTRY);
 }
 
